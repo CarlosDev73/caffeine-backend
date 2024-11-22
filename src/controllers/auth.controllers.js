@@ -62,10 +62,10 @@ export const login = async (req,res) =>{
 
     // si no es encontrado lanzamos un status 400
     if(!userFound){
-      res.status(400).json({
-        message: "Credenciales incorrectas",
-        error:[],
-        data: null
+      return res.status(400).json({
+          message: "Credenciales incorrectas",
+          error:[],
+          data: null
       })
     };
 
@@ -76,10 +76,10 @@ export const login = async (req,res) =>{
 
     // si no hay match en los hash, lanzamos status 400
     if(!isMatch){
-      res.status(400).json({
-        message: "Credenciales incorrectas",
-        error:[],
-        data:null
+      return res.status(400).json({
+          message: "Credenciales incorrectas",
+          error:[],
+          data:null
       })
     };
 
