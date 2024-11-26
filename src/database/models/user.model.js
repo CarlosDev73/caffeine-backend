@@ -6,13 +6,14 @@ const userSchema = new mongoose.Schema({
     require: true,
     unique: true,
     trim: true,
+    lowercase: true,
     maxlength: 60
   },
   displayName:{
     type: String,
     require: true,
-    unique: true,
     trim: true,
+    lowercase: true,
     maxlength: 20,
     minlength: 1
   },
@@ -21,6 +22,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
+    lowercase: true,
     maxlength: 60,
   },
   password:{
@@ -42,6 +44,22 @@ const userSchema = new mongoose.Schema({
   biography:{
     type: String 
   },
+  followers:[{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  }],
+  following:[{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  }],
+  profileImg:{
+    type: String,
+    default: ""
+  },
+  coverImg:{
+    type: String,
+    default: ""
+  }
 
 },
 {
