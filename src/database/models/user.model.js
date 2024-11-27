@@ -53,8 +53,8 @@ const userSchema = new mongoose.Schema({
     ref: "User"
   }],
   profileImg:{
-    type: String,
-    default: ""
+    public_id: String,
+    secure_url: String
   },
   coverImg:{
     type: String,
