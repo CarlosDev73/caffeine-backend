@@ -14,13 +14,17 @@ export const getPosts = async (req, res) => {
       .sort({ createdAt: -1 }) // Ordenar por fecha de creación descendente
       .skip((page - 1) * limit) // Saltar los primeros N posts según la página
       .limit(Number(limit)) // Limitar el número de posts por página
-      .populate('_userId', 'userName') // Populate userName from User model
+      .populate('_userId', 'userName profileImg') // Populate userName from User model
       .exec();
     // Obtener la cantidad total de posts (para paginación en el cliente)
     const totalPosts = await Post.countDocuments(filter);
 
     res.status(200).json({
-      posts,
+      posts: posts.map((post) => ({
+        ...post.toObject(),
+        userName: post._userId.userName, // Extract userName
+        profilePic: post._userId.profileImg, // Extract profilePic
+    })),
       totalPosts,
       totalPages: Math.ceil(totalPosts / limit),
       currentPage: Number(page),
