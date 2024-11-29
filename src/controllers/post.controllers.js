@@ -13,8 +13,9 @@ export const getPosts = async (req, res) => {
     const posts = await Post.find(filter)
       .sort({ createdAt: -1 }) // Ordenar por fecha de creación descendente
       .skip((page - 1) * limit) // Saltar los primeros N posts según la página
-      .limit(Number(limit)); // Limitar el número de posts por página
-
+      .limit(Number(limit)) // Limitar el número de posts por página
+      .populate('_userId', 'userName') // Populate userName from User model
+      .exec();
     // Obtener la cantidad total de posts (para paginación en el cliente)
     const totalPosts = await Post.countDocuments(filter);
 
