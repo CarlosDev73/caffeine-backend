@@ -73,7 +73,7 @@ export const createPost = async (req, res) => {
 export const updatePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content } = req.body;
+    const { title, content, type, tags } = req.body;
 
     const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: 'Post no encontrado' });
@@ -82,11 +82,35 @@ export const updatePost = async (req, res) => {
       return res.status(403).json({ message: 'No tienes permisos para actualizar este post' });
     }
 
-    const updatedPost = await Post.findByIdAndUpdate(
-      id,
-      { title, content },
-      { new: true, runValidators: true }
-    );
+   // Actualizar los campos básicos
+   const updates = {
+    title,
+    content,
+    type,
+    tags: tags ? tags.split(',') : [], // Convertir string a array si `tags` está presente
+  };
+
+  // Si hay una nueva imagen, subirla y actualizar el campo `media`
+  if (req.files?.postImg) {
+    // Eliminar la imagen anterior si existe
+    if (post.media?.public_id) {
+      await deleteImage(post.media.public_id); // Asegúrate de tener esta función para eliminar imágenes de tu almacenamiento
+    }
+
+    const postMedia = await uploadImage(req.files.postImg.tempFilePath);
+    updates.media = {
+      public_id: postMedia.public_id,
+      secure_url: postMedia.secure_url,
+    };
+
+    await fs.unlink(req.files.postImg.tempFilePath); // Eliminar el archivo temporal
+  }
+
+  // Actualizar el post en la base de datos
+  const updatedPost = await Post.findByIdAndUpdate(id, updates, {
+    new: true,
+    runValidators: true,
+  });
     res.status(200).json({ message: 'Post actualizado exitosamente', post: updatedPost });
   } catch (error) {
     res.status(500).json({ message: 'Error al actualizar el post', errror: error });
