@@ -74,9 +74,9 @@ export const getPost = async (req, res) => {
 
 export const createPost = async (req, res) => {
   try {
-    const { title, content, type } = req.body;
+    const { title, content, type, tags } = req.body;
     const _userId = req.user.payload.id;
-    const newPost = new Post({ _userId, title, content, type });
+    const newPost = new Post({ _userId, title, content, type, tags: tags ? tags.split(',') : [] });
 
     if(req.files?.postImg){
       const postMedia = await uploadImage(req.files.postImg.tempFilePath);
