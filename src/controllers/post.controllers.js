@@ -19,7 +19,15 @@ export const getPosts = async (req, res) => {
       .exec();
     // Obtener la cantidad total de posts (para paginación en el cliente)
     const totalPosts = await Post.countDocuments(filter);
-
+    if (!posts || posts.length === 0) {
+      return res.status(200).json({
+        message: 'No se encontraron posts',
+        posts: [], // Explicitly return an empty array
+        totalPosts: 0,
+        totalPages: 0,
+        currentPage: Number(page),
+      });
+    }
     res.status(200).json({
       posts: posts.map((post) => ({
         ...post.toObject(),
@@ -44,9 +52,15 @@ export const getUserPosts = async (req, res) => {
       .skip((page - 1) * limit) // Saltar los primeros N posts según la página
       .limit(Number(limit)) // Limitar el número de posts por página
 
-    if (!posts || posts.length === 0) {
-      return res.status(404).json({ message: 'No se encontraron posts para este usuario.' });
-    }
+      if (!posts || posts.length === 0) {
+        return res.status(200).json({
+          message: 'No se encontraron posts para este usuario.',
+          posts: [], // Explicitly return an empty array
+          totalPosts: 0,
+          totalPages: 0,
+          currentPage: Number(page),
+        });
+      }
 
     // Formatear la respuesta con datos adicionales
     const formattedPosts = posts.map((post) => ({
@@ -55,7 +69,15 @@ export const getUserPosts = async (req, res) => {
       profilePic: post._userId.profileImg,
     }));
 
-    res.status(200).json({ message: 'Posts obtenidos con éxito.', posts: formattedPosts });
+    const totalPosts = await Post.countDocuments({ _userId: userId });
+
+    res.status(200).json({
+      message: 'Posts obtenidos con éxito.',
+      posts: formattedPosts,
+      totalPosts,
+      totalPages: Math.ceil(totalPosts / limit),
+      currentPage: Number(page),
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener los posts del usuario.', error });
   }
@@ -193,9 +215,12 @@ export const getCommentsByPost = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate('_userId', 'userName profileImg');
 
-    if (!comments || comments.length === 0) {
-      return res.status(404).json({ message: 'No se encontraron comentarios para este post.' });
-    }
+      if (!comments || comments.length === 0) {
+        return res.status(200).json({
+          message: 'Este post no tiene comentarios aún.',
+          comments: [], // Explicitly return an empty array
+        });
+      }
 
     res.status(200).json({
       message: 'Comentarios obtenidos con éxito.',
