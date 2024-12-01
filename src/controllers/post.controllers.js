@@ -257,3 +257,17 @@ export const unlikePost = async (req, res) => {
     res.status(500).json({ message: 'Error unliking the post.', error });
   }
 };
+
+export const getPostLikes = async (req, res) => {
+  try {
+    const { id } = req.params; // Get post ID from URL
+    const post = await Post.findById(id).populate('likes.userId', 'userName profileImg'); // Ensure 'id' exists and is valid
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    res.status(200).json(post.likes || []); // Return likes array
+  } catch (error) {
+    console.error('Error fetching post likes:', error);
+    res.status(500).json({ message: 'Error fetching post likes', error });
+  }
+};
