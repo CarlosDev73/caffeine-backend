@@ -33,6 +33,32 @@ export const getPosts = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener el timeline', error });
   }
 }
+export const getUserPosts = async (req, res) => {
+  try {
+    const { userId } = req.params; // Obtener el ID del usuario desde los parámetros
+    const { page = 1, limit = 10 } = req.query; // Obtener página y límite de los parámetros de consulta
+    // Buscar posts del usuario específico, ordenados por fecha
+    const posts = await Post.find({ _userId: userId })
+      .sort({ createdAt: -1 }) // Orden descendente por fecha de creación
+      .skip((page - 1) * limit) // Saltar los primeros N posts según la página
+      .limit(Number(limit)) // Limitar el número de posts por página
+
+    if (!posts || posts.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron posts para este usuario.' });
+    }
+
+    // Formatear la respuesta con datos adicionales
+    const formattedPosts = posts.map((post) => ({
+      ...post.toObject(),
+      userName: post._userId.userName,
+      profilePic: post._userId.profileImg,
+    }));
+
+    res.status(200).json({ message: 'Posts obtenidos con éxito.', posts: formattedPosts });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener los posts del usuario.', error });
+  }
+};
 
 export const getPost = async (req, res) => {
   try {
