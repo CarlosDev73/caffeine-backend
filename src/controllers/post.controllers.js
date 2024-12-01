@@ -1,4 +1,5 @@
 import Post from '../database/models/post.model.js';
+import Comment from '../database/models/comment.model.js';
 import { uploadImage } from '../libs/index.js';
 import fs from 'fs-extra';
 
@@ -160,3 +161,51 @@ export const deletePost = async (req, res) => {
     res.status(500).json({ message: 'Error al eliminar el post', error: error });
   }
 }
+export const createComment = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { content, isCorrect, levelId } = req.body;
+    const _userId = req.user.payload.id;
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post no encontrado' });
+
+    const newComment = new Comment({
+      _postId: postId,
+      _userId,
+      content,
+      isCorrect: isCorrect || false,
+      _levelId: levelId || null,
+    });
+
+    const savedComment = await newComment.save();
+    res.status(201).json({ message: 'Comentario creado con éxito', data: savedComment });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al crear el comentario', error });
+  }
+};
+
+export const getCommentsByPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const comments = await Comment.find({ _postId: postId })
+      .sort({ createdAt: -1 })
+      .populate('_userId', 'userName profileImg');
+
+    if (!comments || comments.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron comentarios para este post.' });
+    }
+
+    res.status(200).json({
+      message: 'Comentarios obtenidos con éxito.',
+      comments: comments.map((comment) => ({
+        ...comment.toObject(),
+        userName: comment._userId.userName,
+        profilePic: comment._userId.profileImg,
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener los comentarios', error });
+  }
+};
