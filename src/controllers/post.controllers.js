@@ -209,3 +209,51 @@ export const getCommentsByPost = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener los comentarios', error });
   }
 };
+
+export const likePost = async (req, res) => {
+  try {
+    const { id } = req.params; // ID of the post
+    const userId = req.user.payload.id; // Authenticated user's ID
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found.' });
+    }
+
+    // Check if the user already liked the post
+    const isLiked = post.likes.some((like) => like.userId.toString() === userId);
+    if (isLiked) {
+      return res.status(400).json({ message: 'You already liked this post.' });
+    }
+
+    // Add the like
+    post.likes.push({ userId });
+    await post.save();
+
+    res.status(200).json({ message: 'Post liked successfully.', post });
+  } catch (error) {
+    console.error('Error liking the post:', error);
+    res.status(500).json({ message: 'Error liking the post.', error });
+  }
+};
+
+export const unlikePost = async (req, res) => {
+  try {
+    const { id } = req.params; // ID of the post
+    const userId = req.user.payload.id; // Authenticated user's ID
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found.' });
+    }
+
+    // Filter out the user's like
+    post.likes = post.likes.filter((like) => like.userId.toString() !== userId);
+    await post.save();
+
+    res.status(200).json({ message: 'Like removed successfully.', post });
+  } catch (error) {
+    console.error('Error unliking the post:', error);
+    res.status(500).json({ message: 'Error unliking the post.', error });
+  }
+};
