@@ -42,9 +42,13 @@ export const unmarkAsFavorite = async (req, res) => {
 export const getUserFavorites = async (req, res) => {
   try {
     const userId = req.user.payload.id;
+    const { page = 1, limit = 10 } = req.query;
 
     // Fetch todos los posts favoritos de un usuario
     const favorites = await Favorite.find({ userId })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
       .populate({
         path: 'postId',
         select: 'title content media createdAt likesCount isLiked comments _userId',
@@ -53,11 +57,17 @@ export const getUserFavorites = async (req, res) => {
           select: 'userName profileImg', // Include user details
         },
       })
-      .sort({ createdAt: -1 });
+      .exec();
 
-    if (favorites.length === 0) {
-      return res.status(404).json({ message: 'Favoritos no encontrados' });
-    }
+      if (!favorites || favorites.length === 0) {
+        return res.status(200).json({
+          message: 'No se encontraron posts para este usuario.',
+          favorites: [], // Explicitly return an empty array
+          totalFavorites: 0,
+          totalPages: 0,
+          currentPage: Number(page),
+        });
+      }
 
     const formattedFavorites = favorites.map((favorite) => ({
       _id: favorite.postId._id,
@@ -71,7 +81,16 @@ export const getUserFavorites = async (req, res) => {
       _userId: favorite.postId._userId,
     }));
 
-    res.status(200).json({ message: 'Favoritos obtenidos correctamente', formattedFavorites });
+    const totalFavorites= await Favorite.countDocuments();
+
+    res.status(200).json({
+      message: 'Favoritos obtenidos correctamente',
+      favorites: formattedFavorites,
+      totalFavorites,
+      totalPages: Math.ceil(totalFavorites / limit),
+      currentPage: Number(page),
+    });
+
   } catch (error) {
     res.status(500).json({ message: 'Error obteniendo favoritos', error });
   }
