@@ -45,15 +45,60 @@ export const getUserFavorites = async (req, res) => {
 
     // Fetch todos los posts favoritos de un usuario
     const favorites = await Favorite.find({ userId })
-      .populate('postId', 'title content media')
+      .populate({
+        path: 'postId',
+        select: 'title content media createdAt likesCount isLiked comments _userId',
+        populate: {
+          path: '_userId',
+          select: 'userName profileImg', // Include user details
+        },
+      })
       .sort({ createdAt: -1 });
 
     if (favorites.length === 0) {
       return res.status(404).json({ message: 'Favoritos no encontrados' });
     }
 
-    res.status(200).json({ message: 'Favoritos obtenidos correctamente', favorites });
+    const formattedFavorites = favorites.map((favorite) => ({
+      _id: favorite.postId._id,
+      title: favorite.postId.title,
+      content: favorite.postId.content,
+      media: favorite.postId.media,
+      createdAt: favorite.postId.createdAt,
+      likesCount: favorite.postId.likesCount || 0,
+      isLiked: favorite.postId.isLiked || false,
+      comments: favorite.postId.comments || [],
+      _userId: favorite.postId._userId,
+    }));
+
+    res.status(200).json({ message: 'Favoritos obtenidos correctamente', formattedFavorites });
   } catch (error) {
     res.status(500).json({ message: 'Error obteniendo favoritos', error });
+  }
+};
+
+export const getPostFavorites = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    // Find all favorites for the given postId
+    const favorites = await Favorite.find({ postId }).populate('userId', 'userName profileImg');
+
+    if (!favorites || favorites.length === 0) {
+      return res.status(200).json({ message: 'No favorites found for this post.', favorites: [] });
+    }
+
+    res.status(200).json({
+      message: 'Favorites fetched successfully.',
+      favorites: favorites.map((favorite) => ({
+        userId: favorite.userId._id,
+        userName: favorite.userId.userName,
+        profileImg: favorite.userId.profileImg,
+        createdAt: favorite.createdAt,
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching post favorites:', error);
+    res.status(500).json({ message: 'Error fetching post favorites.', error });
   }
 };
