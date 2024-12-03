@@ -3,7 +3,7 @@ import morgan  from 'morgan';
 import cors from 'cors';
 import fileUpload from 'express-fileupload';
 import path from 'path';
-import { v1Auth, v1Post } from './v1/routes/index.js';
+import { v1Auth, v1Post, v1Favorite } from './v1/routes/index.js';
 
 const app = express(); 
 
@@ -26,6 +26,7 @@ app.get('/api/v1/ping',(req,res)=>{
 
 app.use('/api/v1', v1Auth);
 app.use('/api/v1', v1Post);
+app.use('/api/v1', v1Favorite);
 
 
 export default app
