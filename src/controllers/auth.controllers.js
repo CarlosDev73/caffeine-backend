@@ -28,7 +28,8 @@ export const register = async (req,res) =>{
         secure_url: imageProfile.secure_url
       }
       
-      await fs.unlink(req.files.profileImg.tempFilePath); // con esto eliminamos el archivo del back
+      await fs.unlink(req.files.profileImg.tempFilePath); 
+      // con esto eliminamos el archivo del back
       //console.log(imageProfile) con esto podemos ver sus propiedades
     }
 
@@ -66,7 +67,7 @@ export const register = async (req,res) =>{
     if(error){
       return res.status(500).json({
         message: "Hubo un error ",
-        error:[{error: error}],
+        error:[{error: error.message}],
         data: null 
       })
     }
@@ -125,7 +126,7 @@ export const login = async (req,res) =>{
     if(error){
       return res.status(500).json({
         message: "Hubo un error ",
-        error:[{error:error}],
+        error:[{error:error.message}],
         data: null 
       })
     }

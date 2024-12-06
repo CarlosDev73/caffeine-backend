@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema({
   phone:{
     type: String
   },
-  direction:{
+  country:{
     type: String
   },
   skills:{
