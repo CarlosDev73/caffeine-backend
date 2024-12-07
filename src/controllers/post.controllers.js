@@ -1,5 +1,6 @@
 import Post from '../database/models/post.model.js';
 import Comment from '../database/models/comment.model.js';
+import User from '../database/models/user.model.js';
 import { uploadImage } from '../libs/index.js';
 import fs from 'fs-extra';
 
@@ -113,6 +114,17 @@ export const createPost = async (req, res) => {
     }
 
     const savedPost = await newPost.save();
+
+    // Sumar puntos al usuario
+    const pointsToAdd = 101; // Cantidad de puntos por crear un post
+    const user = await User.findById(_userId); // Buscar al usuario
+    if (user) {
+      user.points = (user.points || 0) + pointsToAdd; // Incrementar los puntos (asegurando que no sea null)
+      await user.save(); // Guardar cambios en el usuario
+    } else {
+      return res.status(404).json({ message: 'Usuario no encontrado para asignar puntos' });
+    }
+
     res.status(201).json({ message: 'Post creado exitosamente', data: savedPost });
   } catch (error) {
     res.status(500).json({ message: 'Error al crear el post', error: error });
