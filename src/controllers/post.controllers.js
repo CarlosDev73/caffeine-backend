@@ -296,3 +296,66 @@ export const getPostLikes = async (req, res) => {
     res.status(500).json({ message: 'Error fetching post likes', error });
   }
 };
+
+export const toggleLikeComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const _userId = req.user.payload.id;
+
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) {
+      return res.status(404).json({ message: 'Comentario no encontrado' });
+    }
+
+    const userHasLiked = comment.likes.some((like) => like._userId.toString() === _userId);
+
+    if (userHasLiked) {
+      // Si el usuario ya dio like, eliminar el like
+      comment.likes = comment.likes.filter((like) => like._userId.toString() !== _userId);
+    } else {
+      // Si no ha dado like, agregarlo
+      comment.likes.push({ _userId });
+    }
+
+    const updatedComment = await comment.save();
+    res.status(200).json({
+      message: userHasLiked ? 'Like eliminado del comentario' : 'Like agregado al comentario',
+      data: updatedComment
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al modificar el like del comentario', error });
+  }
+};
+
+export const markCommentAsCorrect = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const userId = req.user.payload.id; // ID del usuario autenticado
+
+    // Buscar el comentario por ID
+    const comment = await Comment.findById(commentId).populate('_postId', '_userId');
+
+    if (!comment) {
+      return res.status(404).json({ message: 'Comentario no encontrado' });
+    }
+
+    // Verificar si el usuario es el autor del post asociado al comentario
+    if (comment._postId._userId.toString() !== userId) {
+      return res.status(403).json({
+        message: 'No tienes permiso para marcar este comentario como correcto',
+      });
+    }
+
+    // Actualizar el comentario para marcarlo como correcto
+    comment.isCorrect = true;
+    await comment.save();
+
+    res.status(200).json({
+      message: 'Comentario marcado como correcto',
+      data: comment,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al marcar el comentario como correcto', error });
+  }
+};
