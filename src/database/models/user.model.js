@@ -29,8 +29,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     required:true
   },
-  points:{
-    type: Number
+  points: {
+    type: Number,
+    default: 0, 
+    min: 0,
+  },
+  level: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Level',
+    default: null,
   },
   phone:{
     type: String
