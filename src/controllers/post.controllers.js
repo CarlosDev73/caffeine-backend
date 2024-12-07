@@ -3,6 +3,7 @@ import Comment from '../database/models/comment.model.js';
 import User from '../database/models/user.model.js';
 import { uploadImage } from '../libs/index.js';
 import fs from 'fs-extra';
+import { assignLevel } from '../utils/level.utils.js';
 
 export const getPosts = async (req, res) => {
   try {
@@ -121,6 +122,8 @@ export const createPost = async (req, res) => {
     if (user) {
       user.points = (user.points || 0) + pointsToAdd; // Incrementar los puntos (asegurando que no sea null)
       await user.save(); // Guardar cambios en el usuario
+
+      await assignLevel(_userId);
     } else {
       return res.status(404).json({ message: 'Usuario no encontrado para asignar puntos' });
     }
