@@ -32,7 +32,7 @@ export const getUser = async (req,res) =>{
 
   try {
 
-    const singleUser = await User.findById(req.params.id);
+    const singleUser = await User.findById(req.params.id).populate('level');
 
     if(!singleUser){
       
