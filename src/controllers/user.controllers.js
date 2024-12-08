@@ -1,4 +1,5 @@
 import User from '../database/models/user.model.js';
+import Level from '../database/models/level.model.js';
 import { compareHash, createHash, uploadImage } from '../libs/index.js';
 import fs from 'fs-extra';
 
@@ -32,7 +33,7 @@ export const getUser = async (req,res) =>{
 
   try {
 
-    const singleUser = await User.findById(req.params.id);
+    const singleUser = await User.findById(req.params.id).populate('level');
 
     if(!singleUser){
       
@@ -42,12 +43,15 @@ export const getUser = async (req,res) =>{
         data: null 
       })
     }
+    const nextLevel = await Level.findOne({ requirements: { $gt: singleUser.level?.requirements || 0 } })
+      .sort({ requirements: 1 }); // Get the next higher level based on requirements
 
     return res.json({
       message: "Usuario encontrado con éxito",
       error: [],
       data:{
-        singleUser
+        singleUser,
+        nextLevelRequirements: nextLevel?.requirements || null, // Return points for the next level, if available
       }
     });
   } catch (error) {
