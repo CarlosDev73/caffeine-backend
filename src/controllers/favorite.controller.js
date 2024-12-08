@@ -6,7 +6,7 @@ import { assignLevel } from '../utils/level.utils.js';
 
 export const markAsFavorite = async (req, res) => {
   try {
-    const { postId } = req.body;
+    const { postId } = req.params; // Obtener postId de la URL
     const userId = req.user.payload.id;
 
     // Chequea si el post ya fue marcado como favorito
@@ -14,7 +14,7 @@ export const markAsFavorite = async (req, res) => {
     if (existingFavorite) {
       return res.status(200).json({
         message: 'El post ya estaba marcado como favorito.',
-        data: existingFavorite
+        data: existingFavorite,
       });
     }
 
@@ -23,34 +23,29 @@ export const markAsFavorite = async (req, res) => {
     await favorite.save();
 
     // Award points to the author of the post
-    const post = await Post.findById(postId).populate('_userId'); // Populate to get the author's details
+    const post = await Post.findById(postId).populate('_userId');
     if (!post) {
       return res.status(404).json({ message: 'Post no encontrado' });
     }
 
-    const pointsToAdd = 10; // Define points for marking as favorite
-    const postAuthor = await User.findById(post._userId._id); // Find the post's author
-
+    const pointsToAdd = 10; 
+    const postAuthor = await User.findById(post._userId._id);
     if (postAuthor) {
-      // Check if the action already exists in ActionHistory
       const existingAction = await ActionHistory.findOne({
         userId: post._userId._id,
         actionType: 'favoritePost',
         targetId: postId,
       });
       if (!existingAction) {
-        // Increment points for the post's author
         postAuthor.points = (postAuthor.points || 0) + pointsToAdd;
         await postAuthor.save();
 
-        // Register the action in ActionHistory
         await ActionHistory.create({
           userId: post._userId._id,
           actionType: 'favoritePost',
           targetId: postId,
         });
 
-        // Check if the author qualifies for a new level
         await assignLevel(post._userId._id);
       }
     }
@@ -71,23 +66,25 @@ export const markAsFavorite = async (req, res) => {
   }
 };
 
+
 export const unmarkAsFavorite = async (req, res) => {
   try {
-    const { postId } = req.body;
+    const { postId } = req.params; // Obtener postId de la URL
     const userId = req.user.payload.id;
 
     // Quita el favorito
     const favorite = await Favorite.findOneAndDelete({ userId, postId });
 
     if (!favorite) {
-      return res.status(404).json({ message: 'Favorito no encontrados' });
+      return res.status(404).json({ message: 'Favorito no encontrado' });
     }
 
     res.status(200).json({ message: 'Post desmarcado como favorito' });
   } catch (error) {
-    res.status(500).json({ message: 'Error desmarcado el post como favorito', error });
+    res.status(500).json({ message: 'Error al desmarcar el post como favorito', error });
   }
 };
+
 
 export const getUserFavorites = async (req, res) => {
   try {
