@@ -86,8 +86,10 @@ export const getUserFavorites = async (req, res) => {
         },
       })
       .exec();
+    // Filter out favorites with null or missing post references
+    const validFavorites = favorites.filter((favorite) => favorite.postId !== null);
 
-    if (!favorites || favorites.length === 0) {
+    if (!validFavorites || validFavorites.length === 0) {
       return res.status(200).json({
         message: 'No se encontraron posts para este usuario.',
         favorites: [], // Explicitly return an empty array
@@ -97,7 +99,7 @@ export const getUserFavorites = async (req, res) => {
       });
     }
 
-    const formattedFavorites = favorites.map((favorite) => ({
+    const formattedFavorites = validFavorites.map((favorite) => ({
       _id: favorite.postId._id,
       title: favorite.postId.title,
       content: favorite.postId.content,
@@ -109,7 +111,7 @@ export const getUserFavorites = async (req, res) => {
       _userId: favorite.postId._userId,
     }));
 
-    const totalFavorites = await Favorite.countDocuments();
+    const totalFavorites = await Favorite.countDocuments({ userId });
 
     res.status(200).json({
       message: 'Favoritos obtenidos correctamente',
