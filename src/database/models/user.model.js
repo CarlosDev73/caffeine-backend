@@ -66,7 +66,16 @@ const userSchema = new mongoose.Schema({
   coverImg:{
     type: String,
     default: ""
-  }
+  },
+  // Fields for password recovery
+  resetPasswordToken: {
+    type: String, // The unique token
+    default: null,
+  },
+  resetPasswordExpires: {
+    type: Date, // Expiration time for the token
+    default: null,
+  },
 
 },
 {

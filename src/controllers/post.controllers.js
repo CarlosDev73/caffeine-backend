@@ -1,6 +1,7 @@
 import Post from '../database/models/post.model.js';
 import Comment from '../database/models/comment.model.js';
 import User from '../database/models/user.model.js';
+import ActionHistory from '../database/models/actionhistory.model.js';
 import { uploadImage } from '../libs/index.js';
 import fs from 'fs-extra';
 import { assignLevel } from '../utils/level.utils.js';
@@ -116,18 +117,35 @@ export const createPost = async (req, res) => {
 
     const savedPost = await newPost.save();
 
-    // Sumar puntos al usuario
-    const pointsToAdd = 20; // Cantidad de puntos por crear un post
-    const user = await User.findById(_userId); // Buscar al usuario
-    if (user) {
-      user.points = (user.points || 0) + pointsToAdd; // Incrementar los puntos (asegurando que no sea null)
-      await user.save(); // Guardar cambios en el usuario
+    try {
+      // Check if the user has already been awarded points for creating a post
+      const existingAction = await ActionHistory.findOne({
+        userId: _userId,
+        actionType: 'createPost',
+      });
 
-      await assignLevel(_userId);
-    } else {
-      return res.status(404).json({ message: 'Usuario no encontrado para asignar puntos' });
+      if (!existingAction) {
+        const pointsToAdd = 100; // Points for creating a post
+        const user = await User.findById(_userId);
+        if (user) {
+          user.points = (user.points || 0) + pointsToAdd;
+          await user.save();
+
+          await assignLevel(_userId);
+
+          // Record the action
+          await ActionHistory.create({
+            userId: _userId,
+            actionType: 'createPost',
+            targetId: savedPost._id,
+          });
+        } else {
+          console.error('User not found for points assignment');
+        }
+      }
+    } catch (pointsError) {
+      console.error('Error awarding points or assigning level:', pointsError);
     }
-
     res.status(201).json({ message: 'Post creado exitosamente', data: savedPost });
   } catch (error) {
     res.status(500).json({ message: 'Error al crear el post', error: error });
@@ -207,6 +225,13 @@ export const createComment = async (req, res) => {
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: 'Post no encontrado' });
 
+    // Check if the user has already commented on this post
+    const existingAction = await ActionHistory.findOne({
+      userId: _userId,
+      actionType: 'createComment',
+      targetId: postId,
+    });
+
     const newComment = new Comment({
       _postId: postId,
       _userId,
@@ -216,17 +241,26 @@ export const createComment = async (req, res) => {
     });
 
     const savedComment = await newComment.save();
-    // Add points to the user
-    const pointsToAdd = 15; // Points for creating a comment
-    const user = await User.findById(_userId);
-    if (user) {
-      user.points = (user.points || 0) + pointsToAdd; // Ensure points aren't null
-      await user.save();
 
-      // Reassign level if points threshold is crossed
-      await assignLevel(_userId);
+    // Only assign points for the first comment on the post
+    if (!existingAction) {
+      const pointsToAdd = 15; // Points for creating a comment
+      const user = await User.findById(_userId);
+      if (user) {
+        user.points = (user.points || 0) + pointsToAdd; // Increment points safely
+        await user.save();
+
+        // Reassign level if the user qualifies for a new level
+        await assignLevel(_userId);
+
+        // Record the action in ActionHistory
+        await ActionHistory.create({
+          userId: _userId,
+          actionType: 'createComment',
+          targetId: postId,
+        });
+      }
     }
-
     res.status(201).json({ message: 'Comentario creado con éxito', data: savedComment });
   } catch (error) {
     res.status(500).json({ message: 'Error al crear el comentario', error });
@@ -271,9 +305,27 @@ export const likePost = async (req, res) => {
       return res.status(404).json({ message: 'Post not found.' });
     }
 
+    // Check if the action already exists
+    const existingAction = await ActionHistory.findOne({
+      userId,
+      actionType: 'likePost',
+      targetId: id,
+    });
+
+    if (existingAction) {
+      return res.status(200).json({
+        message: 'Post already liked. No points awarded.',
+        data: {
+          post,
+          actionExists: true,
+        },
+      });
+    }
+
     // Add the like
     post.likes.push({ userId });
     await post.save();
+
     // Award points to the post's author
     const pointsToAdd = 2; // Define points for receiving a like
     const postAuthor = await User.findById(post._userId); // Find the post's author
@@ -284,6 +336,13 @@ export const likePost = async (req, res) => {
       // Check if the author qualifies for a new level
       await assignLevel(post._userId);
     }
+
+    // Record the action in ActionHistory
+    await ActionHistory.create({
+      userId,
+      actionType: 'likePost',
+      targetId: id,
+    });
 
     res.status(200).json({
       message: 'Post liked successfully, and points awarded to the author.',
@@ -385,6 +444,13 @@ export const markCommentAsCorrect = async (req, res) => {
         message: 'No tienes permiso para marcar este comentario como correcto',
       });
     }
+    // Si el comentario ya fue marcado como correcto, finalizar sin error
+    if (comment.isCorrect) {
+      return res.status(200).json({
+        message: 'Este comentario ya estaba marcado como correcto.',
+        data: comment,
+      });
+    }
 
     // Actualizar el comentario para marcarlo como correcto
     comment.isCorrect = true;
@@ -394,11 +460,26 @@ export const markCommentAsCorrect = async (req, res) => {
     const commentAuthor = await User.findById(comment._userId);
 
     if (commentAuthor) {
-      commentAuthor.points = (commentAuthor.points || 0) + pointsToAdd; // Increment points safely
-      await commentAuthor.save();
+      const existingAction = await ActionHistory.findOne({
+        userId: comment._userId,
+        actionType: 'markCommentAsCorrect',
+        targetId: commentId,
+      });
+      if (!existingAction) {
+        // Incrementar puntos al autor del comentario
+        commentAuthor.points = (commentAuthor.points || 0) + pointsToAdd;
+        await commentAuthor.save();
 
-      // Check if the author qualifies for a new level
-      await assignLevel(comment._userId);
+        // Registrar la acción en ActionHistory
+        await ActionHistory.create({
+          userId: comment._userId,
+          actionType: 'markCommentAsCorrect',
+          targetId: commentId,
+        });
+
+        // Reasignar nivel si corresponde
+        await assignLevel(comment._userId);
+      }
     }
 
     res.status(200).json({
