@@ -163,3 +163,33 @@ export const forgotPassword = async (req, res) => {
     res.status(500).json({ message: 'Error handling password reset request.', error });
   }
 };
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    // Find the user with the provided token and ensure it hasn't expired
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }, // Ensure the token is still valid
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token.' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await createHash(newPassword);
+
+    // Update user's password and clear the reset token and expiration
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successfully. You can now log in with your new password.' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Error resetting password.', error });
+  }
+};
