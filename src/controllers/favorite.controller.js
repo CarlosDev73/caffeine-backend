@@ -1,4 +1,7 @@
 import Favorite from '../database/models/favorite.model.js';
+import User from '../database/models/user.model.js';
+import Post from '../database/models/post.model.js';
+import { assignLevel } from '../utils/level.utils.js';
 
 export const markAsFavorite = async (req, res) => {
   try {
@@ -14,10 +17,35 @@ export const markAsFavorite = async (req, res) => {
     // Crea el favorito
     const favorite = new Favorite({ userId, postId });
     await favorite.save();
+    // Award points to the author of the post
+    const post = await Post.findById(postId).populate('_userId'); // Populate to get the author's details
+    if (!post) {
+      return res.status(404).json({ message: 'Post no encontrado' });
+    }
 
-    res.status(201).json({ message: 'Post marcado como favorito', favorite });
+    const pointsToAdd = 10; // Define points for marking as favorite
+    const postAuthor = await User.findById(post._userId._id); // Find the post's author
+    if (postAuthor) {
+      postAuthor.points = (postAuthor.points || 0) + pointsToAdd; // Increment author's points
+      await postAuthor.save();
+
+      // Check if the author qualifies for a new level
+      await assignLevel(post._userId._id);
+    }
+
+    res.status(201).json({
+      message: 'Post marcado como favorito y puntos otorgados al autor.',
+      data: {
+        favorite,
+        postAuthor: {
+          id: postAuthor._id,
+          points: postAuthor.points,
+        },
+      },
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error al marcar el post como favorito', error });
+    console.error('Error al marcar el post como favorito:', error);
+    res.status(500).json({ message: 'Error al marcar el post como favorito.', error });
   }
 };
 
@@ -59,15 +87,15 @@ export const getUserFavorites = async (req, res) => {
       })
       .exec();
 
-      if (!favorites || favorites.length === 0) {
-        return res.status(200).json({
-          message: 'No se encontraron posts para este usuario.',
-          favorites: [], // Explicitly return an empty array
-          totalFavorites: 0,
-          totalPages: 0,
-          currentPage: Number(page),
-        });
-      }
+    if (!favorites || favorites.length === 0) {
+      return res.status(200).json({
+        message: 'No se encontraron posts para este usuario.',
+        favorites: [], // Explicitly return an empty array
+        totalFavorites: 0,
+        totalPages: 0,
+        currentPage: Number(page),
+      });
+    }
 
     const formattedFavorites = favorites.map((favorite) => ({
       _id: favorite.postId._id,
@@ -81,7 +109,7 @@ export const getUserFavorites = async (req, res) => {
       _userId: favorite.postId._userId,
     }));
 
-    const totalFavorites= await Favorite.countDocuments();
+    const totalFavorites = await Favorite.countDocuments();
 
     res.status(200).json({
       message: 'Favoritos obtenidos correctamente',

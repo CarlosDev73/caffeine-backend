@@ -35,7 +35,7 @@ export const getPosts = async (req, res) => {
         ...post.toObject(),
         userName: post._userId.userName, // Extract userName
         profilePic: post._userId.profileImg, // Extract profilePic
-    })),
+      })),
       totalPosts,
       totalPages: Math.ceil(totalPosts / limit),
       currentPage: Number(page),
@@ -54,15 +54,15 @@ export const getUserPosts = async (req, res) => {
       .skip((page - 1) * limit) // Saltar los primeros N posts según la página
       .limit(Number(limit)) // Limitar el número de posts por página
 
-      if (!posts || posts.length === 0) {
-        return res.status(200).json({
-          message: 'No se encontraron posts para este usuario.',
-          posts: [], // Explicitly return an empty array
-          totalPosts: 0,
-          totalPages: 0,
-          currentPage: Number(page),
-        });
-      }
+    if (!posts || posts.length === 0) {
+      return res.status(200).json({
+        message: 'No se encontraron posts para este usuario.',
+        posts: [], // Explicitly return an empty array
+        totalPosts: 0,
+        totalPages: 0,
+        currentPage: Number(page),
+      });
+    }
 
     // Formatear la respuesta con datos adicionales
     const formattedPosts = posts.map((post) => ({
@@ -102,14 +102,14 @@ export const createPost = async (req, res) => {
     const _userId = req.user.payload.id;
     const newPost = new Post({ _userId, title, content, type, tags: tags ? tags.split(',') : [] });
 
-    if(req.files?.postImg){
+    if (req.files?.postImg) {
       const postMedia = await uploadImage(req.files.postImg.tempFilePath);
 
       newPost.media = {
         public_id: postMedia.public_id,
         secure_url: postMedia.secure_url
       }
-      
+
       await fs.unlink(req.files.postImg.tempFilePath); // con esto eliminamos el archivo del back
       //console.log(postMedia) //con esto podemos ver sus propiedades
     }
@@ -117,7 +117,7 @@ export const createPost = async (req, res) => {
     const savedPost = await newPost.save();
 
     // Sumar puntos al usuario
-    const pointsToAdd = 101; // Cantidad de puntos por crear un post
+    const pointsToAdd = 20; // Cantidad de puntos por crear un post
     const user = await User.findById(_userId); // Buscar al usuario
     if (user) {
       user.points = (user.points || 0) + pointsToAdd; // Incrementar los puntos (asegurando que no sea null)
@@ -146,35 +146,35 @@ export const updatePost = async (req, res) => {
       return res.status(403).json({ message: 'No tienes permisos para actualizar este post' });
     }
 
-   // Actualizar los campos básicos
-   const updates = {
-    title,
-    content,
-    type,
-    tags: tags ? tags.split(',') : [], // Convertir string a array si `tags` está presente
-  };
-
-  // Si hay una nueva imagen, subirla y actualizar el campo `media`
-  if (req.files?.postImg) {
-    // Eliminar la imagen anterior si existe
-    if (post.media?.public_id) {
-      await deleteImage(post.media.public_id); // Asegúrate de tener esta función para eliminar imágenes de tu almacenamiento
-    }
-
-    const postMedia = await uploadImage(req.files.postImg.tempFilePath);
-    updates.media = {
-      public_id: postMedia.public_id,
-      secure_url: postMedia.secure_url,
+    // Actualizar los campos básicos
+    const updates = {
+      title,
+      content,
+      type,
+      tags: tags ? tags.split(',') : [], // Convertir string a array si `tags` está presente
     };
 
-    await fs.unlink(req.files.postImg.tempFilePath); // Eliminar el archivo temporal
-  }
+    // Si hay una nueva imagen, subirla y actualizar el campo `media`
+    if (req.files?.postImg) {
+      // Eliminar la imagen anterior si existe
+      if (post.media?.public_id) {
+        await deleteImage(post.media.public_id); // Asegúrate de tener esta función para eliminar imágenes de tu almacenamiento
+      }
 
-  // Actualizar el post en la base de datos
-  const updatedPost = await Post.findByIdAndUpdate(id, updates, {
-    new: true,
-    runValidators: true,
-  });
+      const postMedia = await uploadImage(req.files.postImg.tempFilePath);
+      updates.media = {
+        public_id: postMedia.public_id,
+        secure_url: postMedia.secure_url,
+      };
+
+      await fs.unlink(req.files.postImg.tempFilePath); // Eliminar el archivo temporal
+    }
+
+    // Actualizar el post en la base de datos
+    const updatedPost = await Post.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    });
     res.status(200).json({ message: 'Post actualizado exitosamente', post: updatedPost });
   } catch (error) {
     res.status(500).json({ message: 'Error al actualizar el post', errror: error });
@@ -216,6 +216,17 @@ export const createComment = async (req, res) => {
     });
 
     const savedComment = await newComment.save();
+    // Add points to the user
+    const pointsToAdd = 15; // Points for creating a comment
+    const user = await User.findById(_userId);
+    if (user) {
+      user.points = (user.points || 0) + pointsToAdd; // Ensure points aren't null
+      await user.save();
+
+      // Reassign level if points threshold is crossed
+      await assignLevel(_userId);
+    }
+
     res.status(201).json({ message: 'Comentario creado con éxito', data: savedComment });
   } catch (error) {
     res.status(500).json({ message: 'Error al crear el comentario', error });
@@ -230,12 +241,12 @@ export const getCommentsByPost = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate('_userId', 'userName profileImg');
 
-      if (!comments || comments.length === 0) {
-        return res.status(200).json({
-          message: 'Este post no tiene comentarios aún.',
-          comments: [], // Explicitly return an empty array
-        });
-      }
+    if (!comments || comments.length === 0) {
+      return res.status(200).json({
+        message: 'Este post no tiene comentarios aún.',
+        comments: [], // Explicitly return an empty array
+      });
+    }
 
     res.status(200).json({
       message: 'Comentarios obtenidos con éxito.',
@@ -269,8 +280,27 @@ export const likePost = async (req, res) => {
     // Add the like
     post.likes.push({ userId });
     await post.save();
+    // Award points to the post's author
+    const pointsToAdd = 2; // Define points for receiving a like
+    const postAuthor = await User.findById(post._userId); // Find the post's author
+    if (postAuthor) {
+      postAuthor.points = (postAuthor.points || 0) + pointsToAdd; // Increment author's points
+      await postAuthor.save();
 
-    res.status(200).json({ message: 'Post liked successfully.', post });
+      // Check if the author qualifies for a new level
+      await assignLevel(post._userId);
+    }
+
+    res.status(200).json({
+      message: 'Post liked successfully, and points awarded to the author.',
+      data: {
+        post,
+        postAuthor: {
+          id: postAuthor._id,
+          points: postAuthor.points,
+        },
+      },
+    });
   } catch (error) {
     console.error('Error liking the post:', error);
     res.status(500).json({ message: 'Error liking the post.', error });
@@ -366,9 +396,26 @@ export const markCommentAsCorrect = async (req, res) => {
     comment.isCorrect = true;
     await comment.save();
 
+    const pointsToAdd = 50;
+    const commentAuthor = await User.findById(comment._userId);
+
+    if (commentAuthor) {
+      commentAuthor.points = (commentAuthor.points || 0) + pointsToAdd; // Increment points safely
+      await commentAuthor.save();
+
+      // Check if the author qualifies for a new level
+      await assignLevel(comment._userId);
+    }
+
     res.status(200).json({
-      message: 'Comentario marcado como correcto',
-      data: comment,
+      message: 'Comentario marcado como correcto y puntos otorgados al autor del comentario',
+      data: {
+        comment,
+        commentAuthor: {
+          id: commentAuthor._id,
+          points: commentAuthor.points,
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({ message: 'Error al marcar el comentario como correcto', error });
