@@ -15,7 +15,7 @@ router.delete('/post/:id', authenticateUser, deletePost);
 router.post('/post/:postId/comment', authenticateUser, createComment);
 router.get('/post/:postId/comments', authenticateUser, getCommentsByPost);
 router.post('/post/:id/like', authenticateUser, likePost);
-router.delete('/post/:id/like', authenticateUser, unlikePost);
+router.delete('/post/:id/unlike', authenticateUser, unlikePost);
 router.get('/post/:id/likes', authenticateUser, getPostLikes);
 router.put('/like/:commentId', authenticateUser, toggleLikeComment);
 router.put('/correct/:commentId', authenticateUser, markCommentAsCorrect);

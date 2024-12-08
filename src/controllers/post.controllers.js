@@ -271,12 +271,6 @@ export const likePost = async (req, res) => {
       return res.status(404).json({ message: 'Post not found.' });
     }
 
-    // Check if the user already liked the post
-    const isLiked = post.likes.some((like) => like.userId.toString() === userId);
-    if (isLiked) {
-      return res.status(400).json({ message: 'You already liked this post.' });
-    }
-
     // Add the like
     post.likes.push({ userId });
     await post.save();
