@@ -14,7 +14,8 @@ export const assignLevel = async (userId) => {
       });
   
       if (!newLevel) {
-        throw new Error('No hay niveles disponibles para este usuario');
+        console.warn('No hay niveles disponibles para este usuario. Sin cambios realizados.');
+        return user;
       }
   
       // Check if the user already has the appropriate level
