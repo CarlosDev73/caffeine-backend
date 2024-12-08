@@ -150,7 +150,7 @@ export const forgotPassword = async (req, res) => {
 
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
     const emailSubject = 'Recuperación de contraseña de Caffeine';
-    const emailText = `Has solicitado recuperar tu contraseña. Dale click al enlace para conseguirlo: ${resetLink}`;
+    const emailText = `Has solicitado recuperar tu contraseña. Dale click al enlace para conseguirlo: ${resetLink}. Tu token es: ${resetToken}`;
 
     await sendEmail({
       to: user.email,
@@ -158,7 +158,7 @@ export const forgotPassword = async (req, res) => {
       text: emailText,
     });
 
-    res.status(200).json({ message: 'Password reset link sent to your email.' });
+    res.status(200).json({ message: 'Se ha enviado un correo con tu token para recuperar la contraseña' });
   } catch (error) {
     res.status(500).json({ message: 'Error handling password reset request.', error });
   }
@@ -175,7 +175,7 @@ export const resetPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired reset token.' });
+      return res.status(400).json({ message: 'Token invalido o expirado' });
     }
 
     // Hash the new password
@@ -187,7 +187,7 @@ export const resetPassword = async (req, res) => {
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    res.status(200).json({ message: 'Password reset successfully. You can now log in with your new password.' });
+    res.status(200).json({ message: 'Contraseña cambiada con éxito, ahora puedes iniciar sesión con tu nueva contraseña' });
   } catch (error) {
     console.error('Error resetting password:', error);
     res.status(500).json({ message: 'Error resetting password.', error });
