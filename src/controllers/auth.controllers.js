@@ -1,5 +1,5 @@
 import User from '../database/models/user.model.js';
-import { createHash, compareHash, createAccesToken, uploadImage } from '../libs/index.js';
+import { createHash, compareHash, createAccesToken, uploadImage, generateResetToken, sendEmail } from '../libs/index.js';
 import fs from 'fs-extra';
 
 export const register = async (req,res) =>{
@@ -132,3 +132,34 @@ export const login = async (req,res) =>{
     }
   }
 }
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const resetToken = generateResetToken();
+    const resetTokenExpires = Date.now() + 3600000; // 1 hour expiration
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = resetTokenExpires;
+    await user.save();
+
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const emailSubject = 'Recuperación de contraseña de Caffeine';
+    const emailText = `Has solicitado recuperar tu contraseña. Dale click al enlace para conseguirlo: ${resetLink}`;
+
+    await sendEmail({
+      to: user.email,
+      subject: emailSubject,
+      text: emailText,
+    });
+
+    res.status(200).json({ message: 'Password reset link sent to your email.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error handling password reset request.', error });
+  }
+};
