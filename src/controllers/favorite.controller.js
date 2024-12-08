@@ -1,6 +1,7 @@
 import Favorite from '../database/models/favorite.model.js';
 import User from '../database/models/user.model.js';
 import Post from '../database/models/post.model.js';
+import ActionHistory from '../database/models/actionhistory.model.js';
 import { assignLevel } from '../utils/level.utils.js';
 
 export const markAsFavorite = async (req, res) => {
@@ -11,12 +12,16 @@ export const markAsFavorite = async (req, res) => {
     // Chequea si el post ya fue marcado como favorito
     const existingFavorite = await Favorite.findOne({ userId, postId });
     if (existingFavorite) {
-      return res.status(400).json({ message: 'Este post ya esta marcado como favorito' });
+      return res.status(200).json({
+        message: 'El post ya estaba marcado como favorito.',
+        data: existingFavorite
+      });
     }
 
     // Crea el favorito
     const favorite = new Favorite({ userId, postId });
     await favorite.save();
+
     // Award points to the author of the post
     const post = await Post.findById(postId).populate('_userId'); // Populate to get the author's details
     if (!post) {
@@ -25,12 +30,29 @@ export const markAsFavorite = async (req, res) => {
 
     const pointsToAdd = 10; // Define points for marking as favorite
     const postAuthor = await User.findById(post._userId._id); // Find the post's author
-    if (postAuthor) {
-      postAuthor.points = (postAuthor.points || 0) + pointsToAdd; // Increment author's points
-      await postAuthor.save();
 
-      // Check if the author qualifies for a new level
-      await assignLevel(post._userId._id);
+    if (postAuthor) {
+      // Check if the action already exists in ActionHistory
+      const existingAction = await ActionHistory.findOne({
+        userId: post._userId._id,
+        actionType: 'favoritePost',
+        targetId: postId,
+      });
+      if (!existingAction) {
+        // Increment points for the post's author
+        postAuthor.points = (postAuthor.points || 0) + pointsToAdd;
+        await postAuthor.save();
+
+        // Register the action in ActionHistory
+        await ActionHistory.create({
+          userId: post._userId._id,
+          actionType: 'favoritePost',
+          targetId: postId,
+        });
+
+        // Check if the author qualifies for a new level
+        await assignLevel(post._userId._id);
+      }
     }
 
     res.status(201).json({
