@@ -198,3 +198,34 @@ export const updateUser = async (req, res) => {
   }
 };
 
+export const getSearchUser = async (req,res) =>{
+  try {
+    const { query } = req.query; 
+
+    if (!query) {
+      return res.status(400).json({
+        message: "Por favor proporciona un término de búsqueda.",
+        error: [],
+        data: null,
+      });
+    }
+
+    const users = await User.find({
+      displayName: { $regex: query, $options: "i" },
+    }).select("userName displayName profileImg");
+
+    return res.json({
+      message: "Usuarios encontrados.",
+      error: [],
+      data: users,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error al buscar usuarios.",
+      error: [{ error: error.message }],
+      data: null,
+    });
+  }
+}
+
