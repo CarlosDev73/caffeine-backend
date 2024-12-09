@@ -229,3 +229,72 @@ export const getSearchUser = async (req,res) =>{
   }
 }
 
+export const followUser = async (req,res) =>{
+  try {
+    const userId = req.user.payload.id; // El usuario actual (quién está siguiendo)
+    const targetId = req.params.id; // El usuario a seguir
+
+    if (userId === targetId) {
+      return res.status(400).json({ message: "No puedes seguirte a ti mismo." });
+    }
+
+    const user = await User.findById(userId);
+    const targetUser = await User.findById(targetId);
+
+    if (!user || !targetUser) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    // Verificar si ya sigue al usuario
+    if (user.following.includes(targetId)) {
+      return res.status(400).json({ message: "Ya estás siguiendo a este usuario." });
+    }
+
+    // Agregar el ID a las listas
+    user.following.push(targetId);
+    targetUser.followers.push(userId);
+
+    // Guardar los cambios
+    await user.save();
+    await targetUser.save();
+
+    res.status(200).json({ message: "Usuario seguido." });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export const unfollowUser = async (req,res) =>{
+  try {
+    const userId = req.user.payload.id; // El usuario actual (quién deja de seguir)
+    const targetId = req.params.id; // El usuario a dejar de seguir
+
+    if (userId === targetId) {
+      return res.status(400).json({ message: "No puedes dejar de seguirte a ti mismo." });
+    }
+
+    const user = await User.findById(userId);
+    const targetUser = await User.findById(targetId);
+
+    if (!user || !targetUser) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    // Verificar si realmente sigue al usuario
+    if (!user.following.includes(targetId)) {
+      return res.status(400).json({ message: "No sigues a este usuario." });
+    }
+
+    // Eliminar el ID de las listas
+    user.following = user.following.filter(id => id.toString() !== targetId);
+    targetUser.followers = targetUser.followers.filter(id => id.toString() !== userId);
+
+    // Guardar los cambios
+    await user.save();
+    await targetUser.save();
+
+    res.status(200).json({ message: "Dejaste de seguir al usuario." });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
