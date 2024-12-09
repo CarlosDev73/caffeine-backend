@@ -164,6 +164,15 @@ export const updatePost = async (req, res) => {
       return res.status(403).json({ message: 'No tienes permisos para actualizar este post' });
     }
 
+    const creationTime = new Date(post.createdAt); // Convierte createdAt a objeto Date
+    const currentTime = new Date(); // Fecha y hora actual
+
+    // Calcula la diferencia en milisegundos y la convierte a horas
+    const timeDifferenceInHours = (currentTime - creationTime) / (1000 * 60 * 60);
+    if (timeDifferenceInHours > 24) {
+      return res.status(403).json({ message: 'Ya no puedes editar el post' });
+    }
+
     // Actualizar los campos básicos
     const updates = {
       title,
@@ -208,6 +217,15 @@ export const deletePost = async (req, res) => {
 
     if (post._userId.toString() !== req.user.payload.id) {
       return res.status(403).json({ message: 'No tienes permisos para eliminar este post' });
+    }
+
+    const creationTime = new Date(post.createdAt); // Convierte createdAt a objeto Date
+    const currentTime = new Date(); // Fecha y hora actual
+
+    // Calcula la diferencia en milisegundos y la convierte a horas
+    const timeDifferenceInHours = (currentTime - creationTime) / (1000 * 60 * 60);
+    if (timeDifferenceInHours > 24) {
+      return res.status(403).json({ message: 'Ya no puedes eliminar el post' });
     }
 
     await Post.findByIdAndDelete(id);
