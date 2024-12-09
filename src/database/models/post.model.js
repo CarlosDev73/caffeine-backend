@@ -32,6 +32,13 @@ const postSchema = new mongoose.Schema({
         public_id: String,
         secure_url: String
     }],
+    codeContent: {
+        type: String,
+        maxlength: 5000, // Optional limit for code content
+        required: function () {
+            return this.type === 'issue'; // Required only for issues
+          },
+    },
     likes: [
         {
             userId: {

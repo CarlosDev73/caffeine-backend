@@ -89,7 +89,15 @@ export const getUserPosts = async (req, res) => {
 export const getPost = async (req, res) => {
   try {
     const { id } = req.params;
-    const post = await Post.findById(id);
+    const post = await Post.findById(id)
+      .populate({
+        path: '_userId',
+        select: 'userName profileImg level',
+        populate: {
+          path: 'level', // Asegúrate de que 'level' es el campo referenciado en User
+          select: 'name description', // Los campos que quieres del nivel
+        },
+      });
     if (!post) return res.status(404).json({ message: 'Post no encontrado' });
     res.status(200).json(post);
   } catch (error) {
@@ -99,9 +107,10 @@ export const getPost = async (req, res) => {
 
 export const createPost = async (req, res) => {
   try {
-    const { title, content, type, tags } = req.body;
+    const { title, content, type, tags, codeContent } = req.body;
     const _userId = req.user.payload.id;
-    const newPost = new Post({ _userId, title, content, type, tags: tags ? tags.split(',') : [] });
+    const decodedCodeContent = codeContent ? decodeURIComponent(codeContent) : null;
+    const newPost = new Post({ _userId, title, content, type, tags: tags ? tags.split(',') : [], codeContent: decodedCodeContent});
 
     if (req.files?.postImg) {
       const postMedia = await uploadImage(req.files.postImg.tempFilePath);
@@ -155,8 +164,8 @@ export const createPost = async (req, res) => {
 export const updatePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content, type, tags } = req.body;
-
+    const { title, content, type, tags, codeContent } = req.body;
+    const decodedCodeContent = codeContent ? decodeURIComponent(codeContent) : null;
     const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: 'Post no encontrado' });
 
@@ -179,6 +188,7 @@ export const updatePost = async (req, res) => {
       content,
       type,
       tags: tags ? tags.split(',') : [], // Convertir string a array si `tags` está presente
+      codeContent: decodedCodeContent,
     };
 
     // Si hay una nueva imagen, subirla y actualizar el campo `media`
