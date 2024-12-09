@@ -53,11 +53,13 @@ const userSchema = new mongoose.Schema({
   },
   followers:[{
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
+    ref: "User",
+    index: true
   }],
   following:[{
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
+    ref: "User",
+    index: true
   }],
   profileImg:{
     public_id: String,
