@@ -107,3 +107,45 @@ describe('PUT /posts/:id', () => {
     expect(response.body.message).toBe('No tienes permisos para actualizar este post');
   });
 });
+
+describe('DELETE /posts/:id', () => {
+  it('should delete a post', async () => {
+    const post = await new Post({
+      _userId: userId,
+      title: 'Test Post',
+      content: 'Content',
+      codeContent: 'Codigo',
+      type: 'issue',
+    }).save();
+
+    const response = await request(app)
+      .delete(`/api/v1/posts/${post._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.message).toBe('Post eliminado exitosamente');
+  });
+
+  it('should return 403 if trying to delete another user’s post', async () => {
+    const anotherUser = new User({
+      userName: 'anotherUser',
+      email: 'another@example.com',
+      password: await createHash('password123'),
+    });
+    const savedUser = await anotherUser.save();
+
+    const post = await new Post({
+      _userId: savedUser._id,
+      title: 'Another User Post',
+      content: 'Content',
+      type: 'post',
+    }).save();
+
+    const response = await request(app)
+      .delete(`/api/v1/posts/${post._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+
+    expect(response.body.message).toBe('No tienes permisos para eliminar este post');
+  });
+});
