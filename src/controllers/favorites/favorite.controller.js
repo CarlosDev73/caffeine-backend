@@ -1,8 +1,8 @@
-import Favorite from '../database/models/favorite.model.js';
-import User from '../database/models/user.model.js';
-import Post from '../database/models/post.model.js';
-import ActionHistory from '../database/models/actionhistory.model.js';
-import { assignLevel } from '../utils/level.utils.js';
+import Favorite from '../../database/models/favorite.model.js';
+import User from '../../database/models/user.model.js';
+import Post from '../../database/models/post.model.js';
+import ActionHistory from '../../database/models/actionhistory.model.js';
+import { assignLevel } from '../../utils/level.utils.js';
 
 export const markAsFavorite = async (req, res) => {
   try {

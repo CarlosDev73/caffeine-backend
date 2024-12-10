@@ -1,6 +1,6 @@
-import User from '../database/models/user.model.js';
-import Level from '../database/models/level.model.js';
-import { compareHash, createHash, uploadImage } from '../libs/index.js';
+import User from '../../database/models/user.model.js';
+import Level from '../../database/models/level.model.js';
+import { compareHash, createHash, uploadImage } from '../../libs/index.js';
 import fs from 'fs-extra';
 
 export const getAllUsers = async (req,res) =>{
