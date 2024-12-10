@@ -21,7 +21,7 @@ beforeAll(async () => {
   const savedUser = await user.save();
   userId = savedUser._id;
 
-  const response = await request(app).post('/api/v1/login').send({
+  const response = await request(app).post('/api/v1/auth/login').send({
     email: 'test@example.com',
     password: 'password123',
   });
@@ -42,12 +42,13 @@ describe('Post Controller', () => {
         const postData = {
           title: 'Test Post',
           content: 'This is a test post content',
+          codeContent: 'This is a code post content',
           type: 'issue',
           tags: 'laravel',
         };
       
         const response = await request(app)
-          .post('/api/v1/post') // Asegúrate de que la ruta sea correcta
+          .post('/api/v1/posts') // Asegúrate de que la ruta sea correcta
           .set('Authorization', `Bearer ${token}`)
           .send(postData)
           .expect(201); // Cambia de 200 a 201
@@ -55,5 +56,96 @@ describe('Post Controller', () => {
         expect(response.body.message).toBe('Post creado exitosamente');
         expect(response.body.data).toHaveProperty('_id');
       });
+  });
+});
+
+describe('PUT /posts/:id', () => {
+  it('should update a post', async () => {
+    const post = await new Post({
+      _userId: userId,
+      title: 'Original Title',
+      content: 'Original Content',
+      type: 'post',
+    }).save();
+
+    const updates = {
+      title: 'Updated Title',
+      content: 'Updated Content',
+    };
+
+    const response = await request(app)
+      .put(`/api/v1/posts/${post._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(updates)
+      .expect(200);
+
+    expect(response.body.message).toBe('Post actualizado exitosamente');
+    expect(response.body.post.title).toBe('Updated Title');
+  });
+
+  it('should return 403 if trying to update another user’s post', async () => {
+    const anotherUser = new User({
+      userName: 'anotherUser',
+      email: 'another@example.com',
+      password: await createHash('password123'),
+    });
+    const savedUser = await anotherUser.save();
+
+    const post = await new Post({
+      _userId: savedUser._id,
+      title: 'Another User Post',
+      content: 'Content',
+      type: 'post',
+    }).save();
+
+    const response = await request(app)
+      .put(`/api/v1/posts/${post._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Unauthorized Update' })
+      .expect(403);
+
+    expect(response.body.message).toBe('No tienes permisos para actualizar este post');
+  });
+});
+
+describe('DELETE /posts/:id', () => {
+  it('should delete a post', async () => {
+    const post = await new Post({
+      _userId: userId,
+      title: 'Test Post',
+      content: 'Content',
+      codeContent: 'Codigo',
+      type: 'issue',
+    }).save();
+
+    const response = await request(app)
+      .delete(`/api/v1/posts/${post._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.message).toBe('Post eliminado exitosamente');
+  });
+
+  it('should return 403 if trying to delete another user’s post', async () => {
+    const anotherUser = new User({
+      userName: 'anotherUser',
+      email: 'another@example.com',
+      password: await createHash('password123'),
+    });
+    const savedUser = await anotherUser.save();
+
+    const post = await new Post({
+      _userId: savedUser._id,
+      title: 'Another User Post',
+      content: 'Content',
+      type: 'post',
+    }).save();
+
+    const response = await request(app)
+      .delete(`/api/v1/posts/${post._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+
+    expect(response.body.message).toBe('No tienes permisos para eliminar este post');
   });
 });

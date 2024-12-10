@@ -32,7 +32,7 @@ describe('Auth Controller', () => {
       };
 
       const response = await request(app)
-        .post('/api/v1/register') // Ruta relativa
+        .post('/api/v1/auth/register') // Ruta relativa
         .send(userData)
         .expect(200); // Espera un código 200 de éxito
 
@@ -77,7 +77,7 @@ describe('Auth Controller', () => {
       await user.save();
 
       const response = await request(app)
-        .post('/api/v1/login') // Ruta relativa
+        .post('/api/v1/auth/login') // Ruta relativa
         .send({ email: userData.email, password: userData.password })
         .expect(200);
 
@@ -87,7 +87,7 @@ describe('Auth Controller', () => {
 
     it('should return 400 for invalid credentials', async () => {
       const response = await request(app)
-        .post('/api/v1/login') // Ruta relativa
+        .post('/api/v1/auth/login') // Ruta relativa
         .send({ email: 'nonexistent@example.com', password: 'wrongpassword' })
         .expect(400);
 
