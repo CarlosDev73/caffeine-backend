@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getPosts, getPost, createPost, updatePost, deletePost, getUserPosts } from '../../controllers/posts/post.controllers.js';
+import { getPosts, getPost, createPost, updatePost, deletePost, getUserPosts, getSearchPost } from '../../controllers/posts/post.controllers.js';
 import { createComment, getCommentsByPost, toggleLikeComment, markCommentAsCorrect } from '../../controllers/posts/comment.controller.js';
 import { getPostLikes, likePost, unlikePost } from '../../controllers/posts/like.controller.js';
 import { authenticateUser } from '../../middlewares/auth.js';
@@ -7,12 +7,14 @@ import { authenticateUser } from '../../middlewares/auth.js';
 
 const router = Router(); 
 //Posts
+router.get('/posts/search', authenticateUser, getSearchPost);
 router.get('/posts', authenticateUser, getPosts);
 router.get('/posts/:id', authenticateUser, getPost);
 router.get('/users/:userId/posts', authenticateUser, getUserPosts);
 router.post('/posts', authenticateUser, createPost);
 router.put('/posts/:id', authenticateUser, updatePost);
 router.delete('/posts/:id', authenticateUser, deletePost);
+
 
 //Comments
 router.post('/posts/:postId/comments', authenticateUser, createComment);

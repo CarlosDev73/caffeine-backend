@@ -244,3 +244,36 @@ export const deletePost = async (req, res) => {
     res.status(500).json({ message: 'Error al eliminar el post', error: error });
   }
 }
+export const getSearchPost = async (req,res) =>{
+  try {
+    const { query } = req.query; 
+
+    if (!query) {
+      return res.status(400).json({
+        message: "Por favor proporciona un término de búsqueda.",
+        error: [],
+        data: null,
+      });
+    }
+
+    const posts = await Post.find({
+      $or: [
+          { title: { $regex: query, $options: "i" } }, // Coincidencia en título
+          { tags: { $elemMatch: { $regex: query, $options: "i" } } } // Coincidencia en tags
+      ]
+    }).select("title content media createdAt");
+
+    return res.json({
+      message: "Posts encontrados.",
+      error: [],
+      data: posts,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error al buscar posts.",
+      error: [{ error: error.message }],
+      data: null,
+    });
+  }
+}
