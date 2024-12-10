@@ -54,13 +54,13 @@ module.exports = {
             },
             followers: { 
               bsonType: ['array'], 
-              items: { bsonType: 'objectId' },
-              description: 'must be an array of ObjectIds' 
+              items: { bsonType: 'string' },
+              description: 'must be an array of strings' 
             },
             following: { 
               bsonType: ['array'], 
-              items: { bsonType: 'objectId' },
-              description: 'must be an array of ObjectIds' 
+              items: { bsonType: 'string' },
+              description: 'must be an array of strings' 
             },
             profileImg: {
               bsonType: 'object',

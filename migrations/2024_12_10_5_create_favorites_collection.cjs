@@ -5,15 +5,23 @@ module.exports = {
       validator: {
         $jsonSchema: {
           bsonType: 'object',
-          required: ['user', 'post'],
+          required: ['userId', 'postId'],
           properties: {
-            user: {
+            userId: {
               bsonType: 'objectId',
               description: 'must be a valid ObjectId referencing a user and is required',
             },
-            post: {
+            postId: {
               bsonType: 'objectId',
               description: 'must be a valid ObjectId referencing a post and is required',
+            },
+            createdAt: {
+              bsonType: 'date',
+              description: 'timestamp when the comment was created and is required',
+            },
+            updatedAt: {
+              bsonType: 'date',
+              description: 'timestamp when the comment was last updated',
             },
           },
         },
