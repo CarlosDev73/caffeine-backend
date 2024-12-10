@@ -1,5 +1,5 @@
-import { assignLevel } from '../utils/level.utils.js';
-import Level from '../database/models/level.model.js';
+import { assignLevel } from '../../utils/level.utils.js';
+import Level from '../../database/models/level.model.js';
 export const createLevel = async (req, res) => {
   try {
     const { name, description, requirements } = req.body;
