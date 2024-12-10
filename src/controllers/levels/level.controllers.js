@@ -39,6 +39,13 @@ export const getLevels = async (req, res) => {
           message: 'No hay niveles disponibles para este usuario',
         });
       }
+
+      if (!updatedUser.level || updatedUser.level._id.toString() === updatedUser.previousLevelId) {
+        return res.status(200).json({
+          message: 'No se realizaron cambios en el nivel del usuario',
+          data: updatedUser,
+        });
+      }
   
       res.status(200).json({
         message: 'Nivel asignado con éxito',
