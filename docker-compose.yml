@@ -1,24 +1,25 @@
+version: '3.8'
+
 services:
   app:
-    build: .
-    container_name: caffeine_backend
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000" # Mapea el puerto local 3000 al puerto del contenedor
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env
     depends_on:
-      - mongodb
-    environment:
-      MONGODB_URI: mongodb://mongodb:27017/Test1 # URL de conexión a MongoDB
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
-
-  mongodb:
-    image: mongo:8
-    container_name: caffeine_db
+      - mongo
+  mongo:
+    image: mongo:5.0
     ports:
-      - "27017:27017" # Exponer el puerto de MongoDB
+      - "27017:27017"
     volumes:
-      - mongodb_data:/data/db # Persistencia de datos
+      - mongo-data:/data/db
 
 volumes:
-  mongodb_data:
+  mongo-data:
